@@ -1,10 +1,17 @@
 const MONTH = "2026-10";
 const STATUS_OPTIONS = ["待送報備", "報備成功", "派車已核准", "家屬已確認", "訪視完成"];
+const WEEKDAY_LABELS = { 1:"星期一", 2:"星期二", 3:"星期三", 4:"星期四", 5:"星期五", 6:"星期六", 0:"星期日" };
+const VEHICLE_OPTIONS = [
+  { id:"V01", name:"綠色 Toyota Sienta", type:"unit_vehicle" },
+  { id:"V02", name:"藍色 Ford Tourneo", type:"unit_vehicle" },
+  { id:"V03", name:"銀色 Toyota Vios", type:"unit_vehicle" },
+  { id:"TAXI", name:"計程車", type:"taxi" }
+];
 const DATA_LABELS = {
   cases: { title: "當月應訪個案", description: "訪視類型、主責、期限、行政區與需求", required: ["case_id", "alias", "zone", "primary_nurse_id", "doctor_id", "visit_type", "due_start", "due_end", "preferred_period", "needs_vehicle", "duration_min"] },
   doctors: { title: "醫師可訪時段", description: "每一列代表一個可以安排的訪視時段", required: ["doctor_id", "doctor_name", "date", "start_time", "end_time"] },
-  nurses: { title: "護理師班表與用車日", description: "主責人員、上班星期與每月可用車日期", required: ["nurse_id", "nurse_name", "work_days", "vehicle_dates", "max_visits"] },
-  vehicles: { title: "每日用車容量", description: "各日期最多可安排幾筆需要車輛的訪視", required: ["date", "capacity"] }
+  nurses: { title: "護理師班表", description: "主責人員、上班星期與每日訪視上限", required: ["nurse_id", "nurse_name", "work_days", "max_visits"] },
+  vehicles: { title: "護理師每月星期派車配置", description: "一列代表某月份、一位護理師在一個星期幾使用的交通工具", required: ["month", "nurse_id", "nurse_name", "weekday", "transport_type", "vehicle_id", "vehicle_name"] }
 };
 
 const defaultData = {
@@ -26,20 +33,50 @@ const defaultData = {
     ]}
   ],
   nurses: [
-    { id: "N01", name: "護理師 A", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-06","2026-10-13","2026-10-20"], maxVisits: 3 },
-    { id: "N02", name: "護理師 B", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-08","2026-10-15","2026-10-22"], maxVisits: 3 },
-    { id: "N03", name: "護理師 C", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-09","2026-10-16","2026-10-23"], maxVisits: 3 },
-    { id: "N04", name: "護理師 D", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-13","2026-10-20","2026-10-27"], maxVisits: 3 },
-    { id: "N05", name: "護理師 E", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-08","2026-10-15","2026-10-22"], maxVisits: 3 },
-    { id: "N06", name: "護理師 F", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-09","2026-10-16","2026-10-23"], maxVisits: 3 },
-    { id: "N07", name: "護理師 G", workDays: [1,2,3,4,5], vehicleDates: ["2026-10-07","2026-10-14","2026-10-21"], maxVisits: 3 }
+    { id: "N01", name: "護理師 A", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N02", name: "護理師 B", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N03", name: "護理師 C", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N04", name: "護理師 D", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N05", name: "護理師 E", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N06", name: "護理師 F", workDays: [1,2,3,4,5], maxVisits: 3 },
+    { id: "N07", name: "護理師 G", workDays: [1,2,3,4,5], maxVisits: 3 }
   ],
   vehicles: [
-    { date: "2026-10-06", capacity: 4 }, { date: "2026-10-07", capacity: 3 }, { date: "2026-10-08", capacity: 4 },
-    { date: "2026-10-09", capacity: 4 }, { date: "2026-10-13", capacity: 4 }, { date: "2026-10-14", capacity: 3 },
-    { date: "2026-10-15", capacity: 4 }, { date: "2026-10-16", capacity: 4 }, { date: "2026-10-20", capacity: 4 },
-    { date: "2026-10-21", capacity: 3 }, { date: "2026-10-22", capacity: 4 }, { date: "2026-10-23", capacity: 4 },
-    { date: "2026-10-27", capacity: 4 }
+    { nurseId:"N01", weekday:1, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N01", weekday:2, transportType:"unit_vehicle", vehicleId:"V01", vehicleName:"綠色 Toyota Sienta" },
+    { nurseId:"N01", weekday:3, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N01", weekday:4, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" },
+    { nurseId:"N01", weekday:5, transportType:"unit_vehicle", vehicleId:"V03", vehicleName:"銀色 Toyota Vios" },
+    { nurseId:"N02", weekday:1, transportType:"unit_vehicle", vehicleId:"V01", vehicleName:"綠色 Toyota Sienta" },
+    { nurseId:"N02", weekday:2, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N02", weekday:3, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N02", weekday:4, transportType:"unit_vehicle", vehicleId:"V02", vehicleName:"藍色 Ford Tourneo" },
+    { nurseId:"N02", weekday:5, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" },
+    { nurseId:"N03", weekday:1, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N03", weekday:2, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N03", weekday:3, transportType:"unit_vehicle", vehicleId:"V01", vehicleName:"綠色 Toyota Sienta" },
+    { nurseId:"N03", weekday:4, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" },
+    { nurseId:"N03", weekday:5, transportType:"unit_vehicle", vehicleId:"V02", vehicleName:"藍色 Ford Tourneo" },
+    { nurseId:"N04", weekday:1, transportType:"unit_vehicle", vehicleId:"V02", vehicleName:"藍色 Ford Tourneo" },
+    { nurseId:"N04", weekday:2, transportType:"unit_vehicle", vehicleId:"V03", vehicleName:"銀色 Toyota Vios" },
+    { nurseId:"N04", weekday:3, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N04", weekday:4, transportType:"unit_vehicle", vehicleId:"V01", vehicleName:"綠色 Toyota Sienta" },
+    { nurseId:"N04", weekday:5, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N05", weekday:1, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N05", weekday:2, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N05", weekday:3, transportType:"unit_vehicle", vehicleId:"V03", vehicleName:"銀色 Toyota Vios" },
+    { nurseId:"N05", weekday:4, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" },
+    { nurseId:"N05", weekday:5, transportType:"unit_vehicle", vehicleId:"V01", vehicleName:"綠色 Toyota Sienta" },
+    { nurseId:"N06", weekday:1, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N06", weekday:2, transportType:"unit_vehicle", vehicleId:"V02", vehicleName:"藍色 Ford Tourneo" },
+    { nurseId:"N06", weekday:3, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N06", weekday:4, transportType:"unit_vehicle", vehicleId:"V03", vehicleName:"銀色 Toyota Vios" },
+    { nurseId:"N06", weekday:5, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" },
+    { nurseId:"N07", weekday:1, transportType:"unit_vehicle", vehicleId:"V03", vehicleName:"銀色 Toyota Vios" },
+    { nurseId:"N07", weekday:2, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N07", weekday:3, transportType:"unit_vehicle", vehicleId:"V02", vehicleName:"藍色 Ford Tourneo" },
+    { nurseId:"N07", weekday:4, transportType:"none", vehicleId:"", vehicleName:"未配置" },
+    { nurseId:"N07", weekday:5, transportType:"taxi", vehicleId:"TAXI", vehicleName:"計程車" }
   ],
   cases: [
     { id:"H001", alias:"個案 H-01", zone:"安南區", nurseId:"N01", doctorId:"D01", type:"doctor", dueStart:"2026-10-01", dueEnd:"2026-10-15", preferredPeriod:"上午", preferredDays:[2,4], needsVehicle:true, duration:60 },
@@ -64,6 +101,8 @@ const defaultData = {
     { id:"H020", alias:"個案 H-20", zone:"新市區", nurseId:"N06", doctorId:"", type:"nurse", dueStart:"2026-10-01", dueEnd:"2026-10-31", preferredPeriod:"下午", preferredDays:[5], needsVehicle:true, duration:45 }
   ]
 };
+
+defaultData.vehicles.forEach(item => { item.month = MONTH; });
 
 const settings = {
   maxVisits: 3,
@@ -94,8 +133,27 @@ function addMinutes(time, minutes) { const [h,m] = time.split(":").map(Number); 
 function overlaps(startA, endA, startB, endB) { return startA < endB && startB < endA; }
 function datesInMonth() { return Array.from({length:31}, (_,i) => `${MONTH}-${pad(i+1)}`); }
 
-function getVehicleCapacity(date) { return Number(state.vehicles.find(v => v.date === date)?.capacity || 0); }
-function getVehicleUsage(date) { return schedule.filter(event => event.date === date && event.needsVehicle).length; }
+function getVehicleAssignment(nurseId,date) {
+  const weekday = dayOfWeek(date);
+  const assignment = state.vehicles.find(item => item.month === MONTH && item.nurseId === nurseId && Number(item.weekday) === weekday);
+  return assignment && assignment.transportType !== "none" ? assignment : null;
+}
+function getDayVehicleAssignments(date) {
+  const weekday = dayOfWeek(date);
+  return state.nurses.map(nurse => ({ nurse, assignment:getVehicleAssignment(nurse.id,date), weekday }));
+}
+function vehicleLabel(nurseId,date) { return getVehicleAssignment(nurseId,date)?.vehicleName || "未配置車輛"; }
+function vehicleShortLabel(nurseId,date) {
+  const assignment = getVehicleAssignment(nurseId,date);
+  if (!assignment) return "未配置";
+  if (assignment.transportType === "taxi") return "計程車";
+  return assignment.vehicleName.replace("綠色 Toyota ","").replace("藍色 Ford ","").replace("銀色 Toyota ","");
+}
+function hasDuplicateVehicleAssignment(nurseId,date) {
+  const assignment = getVehicleAssignment(nurseId,date);
+  if (!assignment || assignment.transportType !== "unit_vehicle") return false;
+  return state.vehicles.some(item => item.month === MONTH && Number(item.weekday) === dayOfWeek(date) && item.nurseId !== nurseId && item.transportType === "unit_vehicle" && item.vehicleId === assignment.vehicleId);
+}
 function visitClass(type) { return type === "doctor" ? "doctor" : "nurse"; }
 function visitLabel(type) { return type === "doctor" ? "醫師訪視" : "護理師訪視"; }
 
@@ -110,8 +168,9 @@ function candidateReason(item) {
   const baseDates = item.type === "doctor" ? doctor.slots.map(slot => slot.date) : dueDates;
   const nurseDates = [...new Set(baseDates)].filter(date => nurse.workDays.includes(dayOfWeek(date)));
   if (!nurseDates.length) return "醫師／個案可行日期與護理師班表無交集";
-  if (item.needsVehicle && !nurseDates.some(date => nurse.vehicleDates.includes(date) && getVehicleCapacity(date) > 0)) return "可行日期與主責護理師用車日無交集";
-  return "可行時段已被其他行程或車輛容量占用";
+  if (item.needsVehicle && !nurseDates.some(date => getVehicleAssignment(nurse.id,date))) return "可行日期沒有這位護理師的星期車輛配置";
+  if (item.needsVehicle && nurseDates.some(date => hasDuplicateVehicleAssignment(nurse.id,date))) return "同一輛院車在同一星期重複分配給不同護理師";
+  return "可行時段已被其他行程占用";
 }
 
 function buildCandidates(item, workingSchedule) {
@@ -126,9 +185,7 @@ function buildCandidates(item, workingSchedule) {
     if (settings.enforceDue && (slot.date < item.dueStart || slot.date > item.dueEnd)) return false;
     if (settings.enforceNurse && !nurse.workDays.includes(dayOfWeek(slot.date))) return false;
     if (item.needsVehicle && settings.enforceVehicle) {
-      if (!nurse.vehicleDates.includes(slot.date) || getVehicleCapacity(slot.date) < 1) return false;
-      const used = workingSchedule.filter(event => event.date === slot.date && event.needsVehicle).length;
-      if (used >= getVehicleCapacity(slot.date)) return false;
+      if (!getVehicleAssignment(nurse.id,slot.date) || hasDuplicateVehicleAssignment(nurse.id,slot.date)) return false;
     }
     const nurseDayEvents = workingSchedule.filter(event => event.nurseId === item.nurseId && event.date === slot.date);
     const max = Math.min(Number(nurse.maxVisits || settings.maxVisits), Number(settings.maxVisits));
@@ -220,13 +277,14 @@ function renderCalendar() {
   for (let day=1; day<=31; day++) {
     const date = `${MONTH}-${pad(day)}`;
     const dayEvents = schedule.filter(event => event.date === date);
-    const car = getVehicleCapacity(date);
-    const hasVehicleSetting = state.vehicles.some(item => item.date === date);
+    const weekday = dayOfWeek(date);
+    const assignedCount = getDayVehicleAssignments(date).filter(item => item.assignment).length;
+    const hasVehicleSetting = weekday >= 1 && weekday <= 5;
     cells.push(`<div class="calendar-day">
-      <div class="day-number"><span>${day}</span>${hasVehicleSetting ? `<button type="button" class="vehicle-mark ${car === 0 ? "zero" : ""}" data-vehicle-date="${date}" title="當日最多可安排 ${car} 筆需要用車的訪視，點擊查看或修改" aria-label="${date} 用車上限 ${car} 筆，點擊查看或修改">用車上限 ${car}</button>` : ""}</div>
+      <div class="day-number"><span>${day}</span>${hasVehicleSetting ? `<button type="button" class="vehicle-mark ${assignedCount === 0 ? "zero" : ""}" data-vehicle-date="${date}" title="${WEEKDAY_LABELS[weekday]}護理師派車配置，點擊查看或修改" aria-label="${date} ${assignedCount} 位護理師有派車配置，點擊查看或修改">派車 ${assignedCount} 人</button>` : ""}</div>
       <div class="day-events">
         ${dayEvents.slice(0,3).map(event => `<button class="calendar-event ${visitClass(event.type)} ${event.manual ? "manual" : ""}" data-event-id="${event.id}">
-          <strong>${event.start} ${escapeHtml(event.alias)}</strong><span>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)} · ${escapeHtml(event.zone)}</span>
+          <strong>${event.start} ${escapeHtml(event.alias)}</strong><span>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)} · ${escapeHtml(vehicleShortLabel(event.nurseId,event.date))} · ${escapeHtml(event.zone)}</span>
         </button>`).join("")}
         ${dayEvents.length > 3 ? `<span class="more-events">另有 ${dayEvents.length-3} 筆</span>` : ""}
       </div>
@@ -278,6 +336,7 @@ function renderTracking() {
       <td><strong>${escapeHtml(event.alias)}</strong><br><small>${escapeHtml(event.zone)}</small></td>
       <td><span class="type-badge ${visitClass(event.type)}">${visitLabel(event.type)}</span></td>
       <td>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)}</td>
+      <td>${event.needsVehicle ? escapeHtml(vehicleLabel(event.nurseId,event.date)) : "不需用車"}</td>
       <td><select class="status-select" data-status-event="${event.id}" aria-label="${escapeHtml(event.alias)}目前狀態">${STATUS_OPTIONS.map(status => `<option ${status === event.status ? "selected" : ""}>${status}</option>`).join("")}</select></td>
     </tr>`).join("");
   document.querySelectorAll("[data-status-event]").forEach(select => select.addEventListener("change", () => {
@@ -292,7 +351,7 @@ function renderRules() {
   const hardRules = [
     ["enforceDoctor","醫師必須可訪","醫師訪視只能使用醫師提供的時段"],
     ["enforceNurse","護理師必須上班","執行者不可在休假或不可外出日"],
-    ["enforceVehicle","用車日必須有車","需要車輛時不得超過每日容量"],
+    ["enforceVehicle","護理師必須有指定車輛","依星期配對院車或計程車；同一院車不可重複分配"],
     ["enforceDue","不可超過訪視期限","排程日期必須落在應訪區間內"]
   ];
   const softRules = [
@@ -322,38 +381,65 @@ function openEventDialog(id) {
   document.getElementById("editNurse").innerHTML = state.nurses.map(nurse => `<option value="${nurse.id}" ${nurse.id===event.nurseId?"selected":""}>${escapeHtml(nurse.name)}</option>`).join("");
   document.getElementById("editStatus").innerHTML = STATUS_OPTIONS.map(status => `<option ${status===event.status?"selected":""}>${status}</option>`).join("");
   const doctor = byId(state.doctors,event.doctorId);
-  document.getElementById("dialogContext").innerHTML = `<strong>目前條件：</strong>${escapeHtml(event.zone)} · ${doctor ? escapeHtml(doctor.name) : "護理師獨立訪視"} · ${event.needsVehicle ? "需要用車" : "不需用車"}`;
+  document.getElementById("dialogContext").innerHTML = `<strong>目前條件：</strong>${escapeHtml(event.zone)} · ${doctor ? escapeHtml(doctor.name) : "護理師獨立訪視"} · ${event.needsVehicle ? escapeHtml(vehicleLabel(event.nurseId,event.date)) : "不需用車"}`;
   document.getElementById("dialogError").textContent = "";
   document.getElementById("eventDialog").showModal();
 }
 
 function openVehicleDialog(date) {
-  const capacity = getVehicleCapacity(date);
-  const usage = getVehicleUsage(date);
+  const weekday = dayOfWeek(date);
+  const rows = getDayVehicleAssignments(date);
   const dayEvents = schedule.filter(event => event.date === date && event.needsVehicle);
+  const unitCount = rows.filter(item => item.assignment?.transportType === "unit_vehicle").length;
+  const taxiCount = rows.filter(item => item.assignment?.transportType === "taxi").length;
   document.getElementById("vehicleDate").value = date;
-  document.getElementById("vehicleCapacity").value = capacity;
-  document.getElementById("vehicleDialogTitle").textContent = `${dateLabel(date)} 用車資源`;
+  document.getElementById("vehicleDialogTitle").textContent = `${dateLabel(date)} ${WEEKDAY_LABELS[weekday]}派車配置`;
   document.getElementById("vehicleSummary").innerHTML = `
-    <div><small>當日上限</small><strong>${capacity} 筆</strong></div>
-    <div><small>已排使用</small><strong>${usage} 筆</strong></div>
-    <div><small>剩餘容量</small><strong>${Math.max(0,capacity-usage)} 筆</strong></div>`;
+    <div><small>院車配置</small><strong>${unitCount} 人</strong></div>
+    <div><small>計程車</small><strong>${taxiCount} 人</strong></div>
+    <div><small>未配置</small><strong>${rows.length-unitCount-taxiCount} 人</strong></div>`;
+  document.getElementById("vehicleAssignmentRows").innerHTML = rows.map(({nurse,assignment}) => `
+    <label class="vehicle-assignment-row">
+      <span><strong>${escapeHtml(nurse.name)}</strong><small>${WEEKDAY_LABELS[weekday]}</small></span>
+      <select data-nurse-vehicle="${nurse.id}" aria-label="${escapeHtml(nurse.name)}${WEEKDAY_LABELS[weekday]}使用車輛">
+        <option value="" ${!assignment ? "selected" : ""}>未配置</option>
+        ${VEHICLE_OPTIONS.map(option => `<option value="${option.id}" ${assignment?.vehicleId===option.id ? "selected" : ""}>${escapeHtml(option.name)}</option>`).join("")}
+      </select>
+    </label>`).join("");
   document.getElementById("vehicleEventList").innerHTML = dayEvents.length
-    ? `<strong class="mini-title">目前需要用車的行程</strong>${dayEvents.map(event => `<div><span>${event.start}</span><b>${escapeHtml(event.alias)}</b><small>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)}</small></div>`).join("")}`
+    ? `<strong class="mini-title">當日已排用車行程</strong>${dayEvents.map(event => `<div><span>${event.start}</span><b>${escapeHtml(event.alias)}</b><small>${escapeHtml(vehicleLabel(event.nurseId,event.date))}</small></div>`).join("")}`
     : `<div class="empty-inline">目前尚未排入需要用車的訪視。</div>`;
+  document.getElementById("vehicleDialogError").textContent = "";
   document.getElementById("vehicleDialog").showModal();
 }
 
-function saveVehicleCapacity(eventObject) {
+function saveVehicleAssignments(eventObject) {
   eventObject.preventDefault();
   const date = document.getElementById("vehicleDate").value;
-  const capacity = Math.max(0,Math.min(20,Number(document.getElementById("vehicleCapacity").value) || 0));
-  const record = state.vehicles.find(item => item.date === date);
-  if (record) record.capacity = capacity;
-  else state.vehicles.push({date,capacity});
+  const weekday = dayOfWeek(date);
+  const selections = [...document.querySelectorAll("[data-nurse-vehicle]")].map(select => ({ nurseId:select.dataset.nurseVehicle, vehicleId:select.value }));
+  const unitSelections = selections.filter(item => VEHICLE_OPTIONS.find(option => option.id === item.vehicleId)?.type === "unit_vehicle");
+  const duplicate = unitSelections.find((item,index) => unitSelections.findIndex(other => other.vehicleId === item.vehicleId) !== index);
+  if (duplicate) {
+    const option = VEHICLE_OPTIONS.find(item => item.id === duplicate.vehicleId);
+    document.getElementById("vehicleDialogError").textContent = `${option?.name || duplicate.vehicleId}在${WEEKDAY_LABELS[weekday]}重複分配給兩位護理師，請改選其他車輛`;
+    return;
+  }
+  state.vehicles = state.vehicles.filter(item => item.month !== MONTH || Number(item.weekday) !== weekday);
+  selections.forEach(selection => {
+    const option = VEHICLE_OPTIONS.find(item => item.id === selection.vehicleId);
+    state.vehicles.push({
+      month:MONTH,
+      nurseId:selection.nurseId,
+      weekday,
+      transportType:option?.type || "none",
+      vehicleId:option?.id || "",
+      vehicleName:option?.name || "未配置"
+    });
+  });
   document.getElementById("vehicleDialog").close();
   runSmartScheduler(false);
-  showToast(`${dateLabel(date)}用車上限已改為 ${capacity} 筆，並重新排程`);
+  showToast(`${WEEKDAY_LABELS[weekday]}的逐人派車配置已更新，並重新排程`);
 }
 
 function openIssueDialog(caseId) {
@@ -420,9 +506,8 @@ function validateIssueAssignment(values) {
   if (!nurse) return {error:"請選擇可辨識的護理師"};
   if (!nurse.workDays.includes(dayOfWeek(date))) return {error:"選擇的護理師當日不在可排班星期內"};
   if (needsVehicle) {
-    if (!nurse.vehicleDates.includes(date)) return {error:"選擇的護理師當日不是可用車日"};
-    if (getVehicleCapacity(date) < 1) return {error:"當日用車上限為 0，請先修改月曆上的用車上限"};
-    if (getVehicleUsage(date) >= getVehicleCapacity(date)) return {error:"當日用車容量已滿，請提高上限或改期"};
+    if (!getVehicleAssignment(nurseId,date)) return {error:`這位護理師在${WEEKDAY_LABELS[dayOfWeek(date)]}尚未配置院車或計程車`};
+    if (hasDuplicateVehicleAssignment(nurseId,date)) return {error:"同一輛院車在這個星期重複分配給不同護理師，請先修正派車配置"};
   }
   let end = addMinutes(start,item.duration);
   if (item.type === "doctor") {
@@ -504,7 +589,8 @@ function validateManualChange(event, next) {
   const nurse = byId(state.nurses,next.nurseId);
   if (!nurse) return "找不到選擇的護理師";
   if (!nurse.workDays.includes(dayOfWeek(next.date))) return "該護理師當日不在可排班星期內";
-  if (event.needsVehicle && (!nurse.vehicleDates.includes(next.date) || getVehicleCapacity(next.date) < 1)) return "該護理師當日沒有可用車日";
+  if (event.needsVehicle && !getVehicleAssignment(next.nurseId,next.date)) return `該護理師在${WEEKDAY_LABELS[dayOfWeek(next.date)]}尚未配置院車或計程車`;
+  if (event.needsVehicle && hasDuplicateVehicleAssignment(next.nurseId,next.date)) return "同一輛院車在這個星期重複分配給不同護理師";
   const originalCase = byId(state.cases,event.caseId);
   if (next.date < originalCase.dueStart || next.date > originalCase.dueEnd) return "日期超出這位個案的訪視期限";
   if (event.type === "doctor") {
@@ -562,6 +648,7 @@ async function handleCsvUpload(event, type) {
     const missing = DATA_LABELS[type].required.filter(header => !parsed.headers.includes(header));
     if (missing.length) throw new Error(`缺少欄位：${missing.join("、")}`);
     if (!parsed.records.length) throw new Error("CSV沒有資料列");
+    if (type === "vehicles") validateVehicleRows(parsed.records);
     applyImportedData(type,parsed.records);
     importedRows[type] = parsed.records.length;
     message.className = "upload-message success";
@@ -571,6 +658,28 @@ async function handleCsvUpload(event, type) {
     message.className = "upload-message error";
     message.textContent = error.message || "無法讀取CSV";
   }
+}
+
+function validateVehicleRows(records) {
+  const allowedTypes = ["unit_vehicle","taxi","none"];
+  const seenNurseDays = new Set();
+  const seenUnitVehicles = new Map();
+  records.forEach((row,index) => {
+    const line = index + 2;
+    const weekday = Number(row.weekday);
+    if (row.month !== MONTH) throw new Error(`第 ${line} 列 month 必須是目前排程月份 ${MONTH}`);
+    if (!Number.isInteger(weekday) || weekday < 1 || weekday > 5) throw new Error(`第 ${line} 列 weekday 必須是 1 到 5`);
+    if (!allowedTypes.includes(row.transport_type)) throw new Error(`第 ${line} 列 transport_type 只能是 unit_vehicle、taxi 或 none`);
+    const nurseDayKey = `${row.nurse_id}-${weekday}`;
+    if (seenNurseDays.has(nurseDayKey)) throw new Error(`第 ${line} 列與前面重複：同一護理師同一星期只能有一筆配置`);
+    seenNurseDays.add(nurseDayKey);
+    if (row.transport_type === "unit_vehicle") {
+      if (!row.vehicle_id || !row.vehicle_name) throw new Error(`第 ${line} 列院車配置必須填 vehicle_id 與 vehicle_name`);
+      const vehicleDayKey = `${weekday}-${row.vehicle_id}`;
+      if (seenUnitVehicles.has(vehicleDayKey)) throw new Error(`${row.vehicle_name}在星期 ${weekday} 同時分給 ${seenUnitVehicles.get(vehicleDayKey)} 與 ${row.nurse_name}`);
+      seenUnitVehicles.set(vehicleDayKey,row.nurse_name);
+    }
+  });
 }
 
 function applyImportedData(type,records) {
@@ -585,15 +694,27 @@ function applyImportedData(type,records) {
     records.forEach(row => { grouped[row.doctor_id] ||= {id:row.doctor_id,name:row.doctor_name,slots:[]}; grouped[row.doctor_id].slots.push({date:row.date,start:row.start_time,end:row.end_time}); });
     state.doctors = Object.values(grouped);
   }
-  if (type === "nurses") state.nurses = records.map(row => ({ id:row.nurse_id, name:row.nurse_name, workDays:row.work_days.split("|").map(Number), vehicleDates:row.vehicle_dates.split("|").filter(Boolean), maxVisits:Number(row.max_visits)||3 }));
-  if (type === "vehicles") state.vehicles = records.map(row => ({date:row.date,capacity:Number(row.capacity)||0}));
+  if (type === "nurses") state.nurses = records.map(row => ({ id:row.nurse_id, name:row.nurse_name, workDays:row.work_days.split("|").map(Number), maxVisits:Number(row.max_visits)||3 }));
+  if (type === "vehicles") state.vehicles = records.map(row => ({
+    month:row.month,
+    nurseId:row.nurse_id,
+    weekday:Number(row.weekday),
+    transportType:row.transport_type,
+    vehicleId:row.transport_type === "none" ? "" : row.vehicle_id,
+    vehicleName:row.transport_type === "none" ? "未配置" : row.vehicle_name
+  }));
 }
 
 function sampleCSV(type) {
   if (type === "cases") return `case_id,alias,zone,primary_nurse_id,doctor_id,visit_type,due_start,due_end,preferred_period,needs_vehicle,duration_min\nH101,個案 H-101,安南區,N01,D01,doctor,2026-10-01,2026-10-15,上午,true,60\nH102,個案 H-102,安南區,N01,,nurse,2026-10-01,2026-10-20,下午,true,45`;
   if (type === "doctors") return `doctor_id,doctor_name,date,start_time,end_time\nD01,林醫師,2026-10-06,09:00,10:00\nD01,林醫師,2026-10-06,10:30,11:30`;
-  if (type === "nurses") return `nurse_id,nurse_name,work_days,vehicle_dates,max_visits\nN01,護理師 A,1|2|3|4|5,2026-10-06|2026-10-13|2026-10-20,3`;
-  return `date,capacity\n2026-10-06,4\n2026-10-13,4`;
+  if (type === "nurses") return `nurse_id,nurse_name,work_days,max_visits\nN01,護理師 A,1|2|3|4|5,3`;
+  const headers = "month,nurse_id,nurse_name,weekday,transport_type,vehicle_id,vehicle_name";
+  const rows = defaultData.vehicles.map(item => {
+    const nurse = byId(defaultData.nurses,item.nurseId);
+    return [item.month || MONTH,item.nurseId,nurse?.name || item.nurseId,item.weekday,item.transportType,item.vehicleId,item.vehicleName].map(csvCell).join(",");
+  });
+  return [headers,...rows].join("\n");
 }
 
 function downloadSample(type) { downloadText(`${type}_template.csv`, `\uFEFF${sampleCSV(type)}`, "text/csv;charset=utf-8"); }
@@ -604,9 +725,10 @@ function downloadCalendarCSV() {
     const [year,month,day] = event.date.split("-");
     const nurse = byId(state.nurses,event.nurseId)?.name || event.nurseId;
     const doctor = byId(state.doctors,event.doctorId)?.name || "";
+    const vehicle = event.needsVehicle ? vehicleLabel(event.nurseId,event.date) : "不需用車";
     return [
       `[${visitLabel(event.type)}] ${event.alias}`, `${month}/${day}/${year}`, event.start, `${month}/${day}/${year}`, event.end, "False",
-      `主責：${nurse}${doctor?`；醫師：${doctor}`:""}；狀態：${event.status}；模擬資料`, event.zone, "True"
+      `主責：${nurse}${doctor?`；醫師：${doctor}`:""}；交通：${vehicle}；狀態：${event.status}；模擬資料`, event.zone, "True"
     ];
   });
   downloadText("home-care-schedule-2026-10.csv", `\uFEFF${[headers,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n")}`, "text/csv;charset=utf-8");
@@ -620,7 +742,8 @@ function downloadICS() {
   const body = schedule.map(event => {
     const nurse = byId(state.nurses,event.nurseId)?.name || event.nurseId;
     const doctor = byId(state.doctors,event.doctorId)?.name || "";
-    return ["BEGIN:VEVENT",`UID:${event.id}@home-care-simulator`,`DTSTAMP:${now}`,`DTSTART;TZID=Asia/Taipei:${icsDate(event.date,event.start)}`,`DTEND;TZID=Asia/Taipei:${icsDate(event.date,event.end)}`,`SUMMARY:${icsEscape(`[${visitLabel(event.type)}] ${event.alias}`)}`,`DESCRIPTION:${icsEscape(`主責：${nurse}${doctor?`；醫師：${doctor}`:""}；狀態：${event.status}；模擬資料`)}`,`LOCATION:${icsEscape(event.zone)}`,"END:VEVENT"].join("\r\n");
+    const vehicle = event.needsVehicle ? vehicleLabel(event.nurseId,event.date) : "不需用車";
+    return ["BEGIN:VEVENT",`UID:${event.id}@home-care-simulator`,`DTSTAMP:${now}`,`DTSTART;TZID=Asia/Taipei:${icsDate(event.date,event.start)}`,`DTEND;TZID=Asia/Taipei:${icsDate(event.date,event.end)}`,`SUMMARY:${icsEscape(`[${visitLabel(event.type)}] ${event.alias}`)}`,`DESCRIPTION:${icsEscape(`主責：${nurse}${doctor?`；醫師：${doctor}`:""}；交通：${vehicle}；狀態：${event.status}；模擬資料`)}`,`LOCATION:${icsEscape(event.zone)}`,"END:VEVENT"].join("\r\n");
   }).join("\r\n");
   downloadText("home-care-schedule-2026-10.ics", `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Home Care Smart Scheduler//ZH-TW\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n${body}\r\nEND:VCALENDAR`, "text/calendar;charset=utf-8");
   showToast("已產生ICS行事曆檔案");
@@ -635,7 +758,7 @@ function downloadText(filename,text,mime) {
 
 function showAllEvents() {
   const list = document.getElementById("allEventsList");
-  list.innerHTML = schedule.map(event => `<div class="all-event-row"><strong>${dateLabel(event.date)} ${event.start}</strong><span>${escapeHtml(event.alias)} · ${escapeHtml(event.zone)}</span><span>${visitLabel(event.type)}</span><span>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)}</span></div>`).join("");
+  list.innerHTML = schedule.map(event => `<div class="all-event-row"><strong>${dateLabel(event.date)} ${event.start}</strong><span>${escapeHtml(event.alias)} · ${escapeHtml(event.zone)}</span><span>${visitLabel(event.type)}</span><span>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)} · ${escapeHtml(event.needsVehicle ? vehicleShortLabel(event.nurseId,event.date) : "不需用車")}</span></div>`).join("");
   document.getElementById("listDialog").showModal();
 }
 
@@ -662,7 +785,7 @@ document.getElementById("exportCalendarCsv").addEventListener("click",downloadCa
 document.getElementById("showAllEvents").addEventListener("click",showAllEvents);
 document.getElementById("trackingFilter").addEventListener("change",renderTracking);
 document.getElementById("eventForm").addEventListener("submit",saveManualEvent);
-document.getElementById("vehicleForm").addEventListener("submit",saveVehicleCapacity);
+document.getElementById("vehicleForm").addEventListener("submit",saveVehicleAssignments);
 document.getElementById("issueForm").addEventListener("submit",saveIssueAssignment);
 document.getElementById("retryIssue").addEventListener("click",retryIssueSchedule);
 document.getElementById("issueDoctor").addEventListener("change",suggestIssueDoctorSlot);

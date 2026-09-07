@@ -230,7 +230,7 @@ button { cursor: pointer; }
 .filter-label { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:.82rem; }
 select, input[type="date"], input[type="time"] { min-height:40px; border:1px solid var(--line); border-radius:9px; padding:8px 10px; background:#fff; color:var(--ink); }
 .table-wrap { overflow:auto; }
-table { width:100%; border-collapse:collapse; min-width:680px; }
+table { width:100%; border-collapse:collapse; min-width:820px; }
 th { text-align:left; color:var(--muted); font-size:.75rem; padding:10px 12px; border-bottom:1px solid var(--line); }
 td { padding:11px 12px; border-bottom:1px solid #eef1f5; font-size:.83rem; }
 .type-badge { display:inline-flex; align-items:center; padding:4px 7px; border-radius:999px; font-size:.7rem; font-weight:750; }
@@ -284,6 +284,12 @@ dialog form { padding:22px; }
 .vehicle-summary small { display:block; color:var(--muted); font-size:.71rem; }
 .vehicle-summary strong { display:block; margin-top:4px; font-size:1.08rem; }
 .single-field { display:grid; gap:6px; color:var(--muted); font-size:.78rem; font-weight:700; }
+.vehicle-assignment-list { display:grid; gap:7px; max-height:310px; overflow:auto; padding-right:3px; }
+.vehicle-assignment-row { display:grid; grid-template-columns:minmax(130px,.8fr) minmax(220px,1.2fr); align-items:center; gap:12px; padding:10px 11px; border:1px solid var(--line); border-radius:11px; background:#fbfcfe; }
+.vehicle-assignment-row span { min-width:0; }
+.vehicle-assignment-row strong { display:block; font-size:.82rem; }
+.vehicle-assignment-row small { display:block; margin-top:2px; color:var(--muted); font-size:.7rem; }
+.vehicle-assignment-row select { width:100%; min-width:0; }
 .vehicle-event-list { display:grid; gap:7px; margin-top:16px; }
 .vehicle-event-list .mini-title { font-size:.8rem; }
 .vehicle-event-list > div:not(.empty-inline) { display:grid; grid-template-columns:58px 1fr auto; gap:8px; align-items:center; padding:9px 10px; border-radius:10px; background:#f4f7fb; font-size:.76rem; }
@@ -337,6 +343,7 @@ dialog form { padding:22px; }
   .score-stack { grid-template-columns:1fr; }
   .form-grid { grid-template-columns:1fr; }
   .vehicle-summary { grid-template-columns:1fr; }
+  .vehicle-assignment-row { grid-template-columns:1fr; }
   .split-actions .button { width:100%; }
   .all-event-row { grid-template-columns:80px 1fr; }
   .all-event-row > :nth-child(3), .all-event-row > :nth-child(4) { grid-column:2; }

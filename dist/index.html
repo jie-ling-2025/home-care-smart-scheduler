@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="以去識別化模擬資料驗證醫師、護理師、個案、用車日與距離限制的居家訪視智慧排程流程。"
+      content="以去識別化模擬資料驗證醫師、護理師、個案、逐人逐日車輛配置與距離限制的居家訪視智慧排程流程。"
     />
     <title>居家智慧排程模擬系統</title>
     <link rel="stylesheet" href="./styles.css" />
@@ -124,6 +124,7 @@
             <ul>
               <li>使用個案代碼與行政區，不放姓名、完整地址、電話或病況。</li>
               <li>醫師與護理師可先用代碼；確認流程後再討論正式資料來源。</li>
+              <li>派車資料採一個月份、一位護理師、一個星期幾、一種交通工具一列，不再用「車3」或每日總容量代替。</li>
               <li>若資料缺漏，系統列出原因，不自行猜測臨床或行政決策。</li>
             </ul>
           </section>
@@ -157,7 +158,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>日期</th><th>個案</th><th>類型</th><th>執行者</th><th>目前狀態</th></tr></thead>
+                <thead><tr><th>日期</th><th>個案</th><th>類型</th><th>執行者</th><th>使用車輛</th><th>目前狀態</th></tr></thead>
                 <tbody id="trackingTableBody"></tbody>
               </table>
             </div>
@@ -224,19 +225,18 @@
     <dialog id="vehicleDialog" class="event-dialog">
       <form method="dialog" id="vehicleForm">
         <div class="dialog-head">
-          <div><p class="section-kicker">用車資源</p><h3 id="vehicleDialogTitle">當日用車上限</h3></div>
+          <div><p class="section-kicker">逐人派車</p><h3 id="vehicleDialogTitle">當日護理師車輛配置</h3></div>
           <button class="icon-button" type="button" data-close-dialog="vehicleDialog" aria-label="關閉">×</button>
         </div>
         <input type="hidden" id="vehicleDate" />
         <div class="vehicle-explainer">
-          <strong>這不是「第 3 輛車」</strong>
-          <p>「用車上限 3」代表當日最多可安排 3 筆需要車輛的訪視。這是目前 DEMO 的簡化容量設定。</p>
+          <strong>依護理師與星期指定車輛</strong>
+          <p>每位護理師在每個星期幾，必須明確記錄使用 Sienta、Tourneo、Vios、計程車或未配置；同一輛院車同一天只能分配給一人。</p>
         </div>
         <div class="vehicle-summary" id="vehicleSummary"></div>
-        <label class="single-field">當日可排用車訪視上限
-          <input id="vehicleCapacity" type="number" min="0" max="20" required />
-        </label>
+        <div class="vehicle-assignment-list" id="vehicleAssignmentRows"></div>
         <div class="vehicle-event-list" id="vehicleEventList"></div>
+        <div class="dialog-error" id="vehicleDialogError" role="alert"></div>
         <div class="dialog-actions">
           <button class="button ghost" type="button" data-close-dialog="vehicleDialog">取消</button>
           <button class="button primary" type="submit">儲存並重新排程</button>
