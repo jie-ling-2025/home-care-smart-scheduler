@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="以去識別化模擬資料驗證醫師、護理師、個案、用車日與距離限制的居家訪視智慧排程流程。"
+    />
+    <title>居家智慧排程模擬系統</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-rail" aria-label="主要導覽">
+        <div class="brand-mark" aria-hidden="true">HC</div>
+        <nav class="side-nav">
+          <button class="nav-item active" data-view="workspace" aria-label="排程工作台">
+            <span class="nav-icon">▦</span><span>排程</span>
+          </button>
+          <button class="nav-item" data-view="data" aria-label="資料匯入">
+            <span class="nav-icon">⇧</span><span>資料</span>
+          </button>
+          <button class="nav-item" data-view="tracking" aria-label="流程追蹤">
+            <span class="nav-icon">✓</span><span>追蹤</span>
+          </button>
+          <button class="nav-item" data-view="rules" aria-label="排程規則">
+            <span class="nav-icon">≡</span><span>規則</span>
+          </button>
+        </nav>
+        <div class="privacy-chip">模擬版</div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">HOME CARE OPERATIONS</p>
+            <h1>居家智慧排程</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="safe-badge"><span></span>去識別化假資料</span>
+            <button class="button ghost" id="resetDemo">重設模擬資料</button>
+          </div>
+        </header>
+
+        <section id="workspaceView" class="view active" aria-labelledby="workspaceTitle">
+          <div class="view-heading">
+            <div>
+              <p class="section-kicker">排程工作台</p>
+              <h2 id="workspaceTitle">2026 年 10 月訪視草案</h2>
+              <p class="subtle">先滿足醫師、人力、用車與期限，再最佳化地區集中及工作量。</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button primary" id="runScheduler">產生智慧排程</button>
+              <button class="button secondary" id="exportIcs">下載 ICS</button>
+              <button class="button secondary" id="exportCalendarCsv">下載日曆 CSV</button>
+            </div>
+          </div>
+
+          <div class="metric-grid" id="metricGrid" aria-label="排程摘要"></div>
+
+          <div class="workspace-grid">
+            <section class="calendar-card" aria-label="月曆">
+              <div class="card-toolbar">
+                <div class="legend" aria-label="訪視類型圖例">
+                  <span><i class="legend-dot doctor"></i>醫師訪視</span>
+                  <span><i class="legend-dot nurse"></i>護理師訪視</span>
+                  <span><i class="legend-dot manual"></i>人工調整</span>
+                </div>
+                <button class="text-button" id="showAllEvents">檢視全部行程</button>
+              </div>
+              <div class="calendar-weekdays" aria-hidden="true">
+                <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+              </div>
+              <div class="calendar-grid" id="calendarGrid"></div>
+            </section>
+
+            <aside class="issues-card" aria-label="待處理問題">
+              <div class="issues-header">
+                <div>
+                  <p class="section-kicker">需要人員決定</p>
+                  <h3>無法自動排入</h3>
+                </div>
+                <span class="count-pill" id="issueCount">0</span>
+              </div>
+              <div id="issueList" class="issue-list"></div>
+              <div class="principle-note">
+                <strong>系統原則</strong>
+                <p>不能排入時要說明原因，不可默默略過個案。</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="dataView" class="view" aria-labelledby="dataTitle">
+          <div class="view-heading compact">
+            <div>
+              <p class="section-kicker">資料匯入</p>
+              <h2 id="dataTitle">CSV是入口，不是排程答案</h2>
+              <p class="subtle">上傳資料後只在本頁記憶體中運算；重新整理會回復模擬資料。請勿使用真實個資。</p>
+            </div>
+            <button class="button primary" id="runAfterImport">匯入後重新排程</button>
+          </div>
+
+          <div class="data-flow" aria-label="資料處理流程">
+            <div><span>01</span><strong>匯入</strong><small>CSV資料表</small></div>
+            <b>→</b>
+            <div><span>02</span><strong>檢核</strong><small>格式與缺漏</small></div>
+            <b>→</b>
+            <div><span>03</span><strong>配對</strong><small>硬性限制</small></div>
+            <b>→</b>
+            <div><span>04</span><strong>最佳化</strong><small>距離與負荷</small></div>
+            <b>→</b>
+            <div><span>05</span><strong>匯出</strong><small>ICS／CSV</small></div>
+          </div>
+
+          <div class="upload-grid" id="uploadGrid"></div>
+
+          <section class="schema-card">
+            <div>
+              <p class="section-kicker">測試提醒</p>
+              <h3>第一版只驗證流程與規則</h3>
+            </div>
+            <ul>
+              <li>使用個案代碼與行政區，不放姓名、完整地址、電話或病況。</li>
+              <li>醫師與護理師可先用代碼；確認流程後再討論正式資料來源。</li>
+              <li>若資料缺漏，系統列出原因，不自行猜測臨床或行政決策。</li>
+            </ul>
+          </section>
+        </section>
+
+        <section id="trackingView" class="view" aria-labelledby="trackingTitle">
+          <div class="view-heading compact">
+            <div>
+              <p class="section-kicker">流程追蹤</p>
+              <h2 id="trackingTitle">從排程草案到完成訪視</h2>
+              <p class="subtle">用狀態取代「我以為有人已經處理」。本頁變更僅供模擬。</p>
+            </div>
+          </div>
+          <div class="pipeline" id="pipeline"></div>
+          <div class="tracking-card">
+            <div class="table-toolbar">
+              <div>
+                <p class="section-kicker">行程清單</p>
+                <h3>逐筆確認目前進度</h3>
+              </div>
+              <label class="filter-label">篩選
+                <select id="trackingFilter">
+                  <option value="all">全部狀態</option>
+                  <option value="待送報備">待送報備</option>
+                  <option value="報備成功">報備成功</option>
+                  <option value="派車已核准">派車已核准</option>
+                  <option value="家屬已確認">家屬已確認</option>
+                  <option value="訪視完成">訪視完成</option>
+                </select>
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>日期</th><th>個案</th><th>類型</th><th>執行者</th><th>目前狀態</th></tr></thead>
+                <tbody id="trackingTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="rulesView" class="view" aria-labelledby="rulesTitle">
+          <div class="view-heading compact">
+            <div>
+              <p class="section-kicker">排程規則</p>
+              <h2 id="rulesTitle">哪些不能違反，哪些只是盡量做到</h2>
+              <p class="subtle">AI不能自行改變單位規則；每項規則都應由居家護理師確認。</p>
+            </div>
+          </div>
+          <div class="rule-layout">
+            <section class="rule-card hard">
+              <div class="rule-card-head"><span>必須符合</span><strong>硬性限制</strong></div>
+              <div id="hardRules"></div>
+            </section>
+            <section class="rule-card soft">
+              <div class="rule-card-head"><span>用來評分</span><strong>最佳化偏好</strong></div>
+              <div id="softRules"></div>
+            </section>
+          </div>
+          <section class="score-explainer">
+            <div>
+              <p class="section-kicker">排程如何選</p>
+              <h3>先排得進去，再排得更順</h3>
+              <p>系統會先排除沒有醫師、護理師或車輛的組合，再從可行日期中選擇較少車程、同一主責較集中且工作量較平均的方案。</p>
+            </div>
+            <div class="score-stack">
+              <span><b>1</b>排除不可能</span>
+              <span><b>2</b>計算每個方案分數</span>
+              <span><b>3</b>選出建議並說明原因</span>
+              <span><b>4</b>保留人工修改</span>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="eventDialog" class="event-dialog">
+      <form method="dialog" id="eventForm">
+        <div class="dialog-head">
+          <div><p class="section-kicker">人工調整</p><h3 id="dialogTitle">編輯行程</h3></div>
+          <button class="icon-button" type="button" data-close-dialog="eventDialog" aria-label="關閉">×</button>
+        </div>
+        <input type="hidden" id="editEventId" />
+        <div class="form-grid">
+          <label>日期<input type="date" id="editDate" min="2026-10-01" max="2026-10-31" required /></label>
+          <label>時間<input type="time" id="editTime" required /></label>
+          <label>護理師<select id="editNurse"></select></label>
+          <label>目前狀態<select id="editStatus"></select></label>
+        </div>
+        <div class="dialog-context" id="dialogContext"></div>
+        <div class="dialog-error" id="dialogError" role="alert"></div>
+        <div class="dialog-actions">
+          <button class="button ghost" type="button" data-close-dialog="eventDialog">取消</button>
+          <button class="button primary" id="saveEvent" type="submit">儲存人工調整</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="listDialog" class="list-dialog">
+      <form method="dialog">
+        <div class="dialog-head"><div><p class="section-kicker">完整排程</p><h3>全部已排入行程</h3></div><button class="icon-button" type="button" data-close-dialog="listDialog" aria-label="關閉">×</button></div>
+        <div id="allEventsList" class="all-events-list"></div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
