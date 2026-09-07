@@ -221,6 +221,55 @@
       </form>
     </dialog>
 
+    <dialog id="vehicleDialog" class="event-dialog">
+      <form method="dialog" id="vehicleForm">
+        <div class="dialog-head">
+          <div><p class="section-kicker">用車資源</p><h3 id="vehicleDialogTitle">當日用車上限</h3></div>
+          <button class="icon-button" type="button" data-close-dialog="vehicleDialog" aria-label="關閉">×</button>
+        </div>
+        <input type="hidden" id="vehicleDate" />
+        <div class="vehicle-explainer">
+          <strong>這不是「第 3 輛車」</strong>
+          <p>「用車上限 3」代表當日最多可安排 3 筆需要車輛的訪視。這是目前 DEMO 的簡化容量設定。</p>
+        </div>
+        <div class="vehicle-summary" id="vehicleSummary"></div>
+        <label class="single-field">當日可排用車訪視上限
+          <input id="vehicleCapacity" type="number" min="0" max="20" required />
+        </label>
+        <div class="vehicle-event-list" id="vehicleEventList"></div>
+        <div class="dialog-actions">
+          <button class="button ghost" type="button" data-close-dialog="vehicleDialog">取消</button>
+          <button class="button primary" type="submit">儲存並重新排程</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="issueDialog" class="event-dialog">
+      <form method="dialog" id="issueForm">
+        <div class="dialog-head">
+          <div><p class="section-kicker">人工處理</p><h3 id="issueDialogTitle">處理未排入個案</h3></div>
+          <button class="icon-button" type="button" data-close-dialog="issueDialog" aria-label="關閉">×</button>
+        </div>
+        <input type="hidden" id="issueCaseId" />
+        <div class="issue-reason-box" id="issueDialogReason"></div>
+        <div class="form-grid issue-form-grid">
+          <label>主責護理師<select id="issueNurse" required></select></label>
+          <label id="issueDoctorWrap">訪視醫師<select id="issueDoctor"></select></label>
+          <label>訪視期限開始<input type="date" id="issueDueStart" min="2026-10-01" max="2026-10-31" required /></label>
+          <label>訪視期限結束<input type="date" id="issueDueEnd" min="2026-10-01" max="2026-10-31" required /></label>
+          <label>人工安排日期<input type="date" id="issueDate" min="2026-10-01" max="2026-10-31" required /></label>
+          <label>人工安排時間<input type="time" id="issueTime" required /></label>
+        </div>
+        <label class="checkbox-field"><input type="checkbox" id="issueNeedsVehicle" />此訪視需要用車</label>
+        <div class="dialog-context" id="issueDialogContext"></div>
+        <div class="dialog-error" id="issueDialogError" role="alert"></div>
+        <div class="dialog-actions split-actions">
+          <button class="button secondary" id="retryIssue" type="button">更新條件並重新排程</button>
+          <button class="button primary" type="submit">人工排入這個時段</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="listDialog" class="list-dialog">
       <form method="dialog">
         <div class="dialog-head"><div><p class="section-kicker">完整排程</p><h3>全部已排入行程</h3></div><button class="icon-button" type="button" data-close-dialog="listDialog" aria-label="關閉">×</button></div>

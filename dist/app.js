@@ -4,7 +4,7 @@ const DATA_LABELS = {
   cases: { title: "當月應訪個案", description: "訪視類型、主責、期限、行政區與需求", required: ["case_id", "alias", "zone", "primary_nurse_id", "doctor_id", "visit_type", "due_start", "due_end", "preferred_period", "needs_vehicle", "duration_min"] },
   doctors: { title: "醫師可訪時段", description: "每一列代表一個可以安排的訪視時段", required: ["doctor_id", "doctor_name", "date", "start_time", "end_time"] },
   nurses: { title: "護理師班表與用車日", description: "主責人員、上班星期與每月可用車日期", required: ["nurse_id", "nurse_name", "work_days", "vehicle_dates", "max_visits"] },
-  vehicles: { title: "每日車輛容量", description: "各日期能同時支援的訪視車次上限", required: ["date", "capacity"] }
+  vehicles: { title: "每日用車容量", description: "各日期最多可安排幾筆需要車輛的訪視", required: ["date", "capacity"] }
 };
 
 const defaultData = {
@@ -95,6 +95,7 @@ function overlaps(startA, endA, startB, endB) { return startA < endB && startB <
 function datesInMonth() { return Array.from({length:31}, (_,i) => `${MONTH}-${pad(i+1)}`); }
 
 function getVehicleCapacity(date) { return Number(state.vehicles.find(v => v.date === date)?.capacity || 0); }
+function getVehicleUsage(date) { return schedule.filter(event => event.date === date && event.needsVehicle).length; }
 function visitClass(type) { return type === "doctor" ? "doctor" : "nurse"; }
 function visitLabel(type) { return type === "doctor" ? "醫師訪視" : "護理師訪視"; }
 
@@ -220,8 +221,9 @@ function renderCalendar() {
     const date = `${MONTH}-${pad(day)}`;
     const dayEvents = schedule.filter(event => event.date === date);
     const car = getVehicleCapacity(date);
+    const hasVehicleSetting = state.vehicles.some(item => item.date === date);
     cells.push(`<div class="calendar-day">
-      <div class="day-number"><span>${day}</span>${car ? `<span class="vehicle-mark">車 ${car}</span>` : ""}</div>
+      <div class="day-number"><span>${day}</span>${hasVehicleSetting ? `<button type="button" class="vehicle-mark ${car === 0 ? "zero" : ""}" data-vehicle-date="${date}" title="當日最多可安排 ${car} 筆需要用車的訪視，點擊查看或修改" aria-label="${date} 用車上限 ${car} 筆，點擊查看或修改">用車上限 ${car}</button>` : ""}</div>
       <div class="day-events">
         ${dayEvents.slice(0,3).map(event => `<button class="calendar-event ${visitClass(event.type)} ${event.manual ? "manual" : ""}" data-event-id="${event.id}">
           <strong>${event.start} ${escapeHtml(event.alias)}</strong><span>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)} · ${escapeHtml(event.zone)}</span>
@@ -233,16 +235,19 @@ function renderCalendar() {
   while (cells.length % 7) cells.push(`<div class="calendar-day muted" aria-hidden="true"></div>`);
   grid.innerHTML = cells.join("");
   grid.querySelectorAll("[data-event-id]").forEach(button => button.addEventListener("click", () => openEventDialog(button.dataset.eventId)));
+  grid.querySelectorAll("[data-vehicle-date]").forEach(button => button.addEventListener("click", () => openVehicleDialog(button.dataset.vehicleDate)));
 }
 
 function renderIssues() {
   const list = document.getElementById("issueList");
   document.getElementById("issueCount").textContent = issues.length;
   list.innerHTML = issues.length ? issues.map(issue => `
-    <article class="issue-item">
+    <button type="button" class="issue-item" data-issue-case-id="${issue.caseId}" aria-label="處理${escapeHtml(issue.alias)}未排入問題">
       <div class="issue-item-head"><strong>${escapeHtml(issue.alias)}</strong><span class="issue-tag">${visitLabel(issue.type)}</span></div>
       <p>${escapeHtml(issue.reason)}</p>
-    </article>`).join("") : `<div class="empty-state">全部個案都有可行安排，仍需人工核對。</div>`;
+      <span class="issue-action">點擊查看並人工處理 →</span>
+    </button>`).join("") : `<div class="empty-state">全部個案都有可行安排，仍需人工核對。</div>`;
+  list.querySelectorAll("[data-issue-case-id]").forEach(button => button.addEventListener("click", () => openIssueDialog(button.dataset.issueCaseId)));
 }
 
 function renderUploads() {
@@ -320,6 +325,179 @@ function openEventDialog(id) {
   document.getElementById("dialogContext").innerHTML = `<strong>目前條件：</strong>${escapeHtml(event.zone)} · ${doctor ? escapeHtml(doctor.name) : "護理師獨立訪視"} · ${event.needsVehicle ? "需要用車" : "不需用車"}`;
   document.getElementById("dialogError").textContent = "";
   document.getElementById("eventDialog").showModal();
+}
+
+function openVehicleDialog(date) {
+  const capacity = getVehicleCapacity(date);
+  const usage = getVehicleUsage(date);
+  const dayEvents = schedule.filter(event => event.date === date && event.needsVehicle);
+  document.getElementById("vehicleDate").value = date;
+  document.getElementById("vehicleCapacity").value = capacity;
+  document.getElementById("vehicleDialogTitle").textContent = `${dateLabel(date)} 用車資源`;
+  document.getElementById("vehicleSummary").innerHTML = `
+    <div><small>當日上限</small><strong>${capacity} 筆</strong></div>
+    <div><small>已排使用</small><strong>${usage} 筆</strong></div>
+    <div><small>剩餘容量</small><strong>${Math.max(0,capacity-usage)} 筆</strong></div>`;
+  document.getElementById("vehicleEventList").innerHTML = dayEvents.length
+    ? `<strong class="mini-title">目前需要用車的行程</strong>${dayEvents.map(event => `<div><span>${event.start}</span><b>${escapeHtml(event.alias)}</b><small>${escapeHtml(byId(state.nurses,event.nurseId)?.name || event.nurseId)}</small></div>`).join("")}`
+    : `<div class="empty-inline">目前尚未排入需要用車的訪視。</div>`;
+  document.getElementById("vehicleDialog").showModal();
+}
+
+function saveVehicleCapacity(eventObject) {
+  eventObject.preventDefault();
+  const date = document.getElementById("vehicleDate").value;
+  const capacity = Math.max(0,Math.min(20,Number(document.getElementById("vehicleCapacity").value) || 0));
+  const record = state.vehicles.find(item => item.date === date);
+  if (record) record.capacity = capacity;
+  else state.vehicles.push({date,capacity});
+  document.getElementById("vehicleDialog").close();
+  runSmartScheduler(false);
+  showToast(`${dateLabel(date)}用車上限已改為 ${capacity} 筆，並重新排程`);
+}
+
+function openIssueDialog(caseId) {
+  const issue = issues.find(item => item.caseId === caseId);
+  const item = byId(state.cases,caseId);
+  if (!issue || !item) return;
+  const doctor = byId(state.doctors,item.doctorId);
+  const firstSlot = item.type === "doctor"
+    ? doctor?.slots.find(slot => slot.date >= item.dueStart && slot.date <= item.dueEnd)
+    : null;
+  document.getElementById("issueCaseId").value = caseId;
+  document.getElementById("issueDialogTitle").textContent = `${item.alias}｜${visitLabel(item.type)}`;
+  document.getElementById("issueDialogReason").innerHTML = `<strong>未排入原因</strong><p>${escapeHtml(issue.reason)}</p>`;
+  document.getElementById("issueNurse").innerHTML = state.nurses.map(nurse => `<option value="${nurse.id}" ${nurse.id===item.nurseId?"selected":""}>${escapeHtml(nurse.name)}</option>`).join("");
+  const doctorWrap = document.getElementById("issueDoctorWrap");
+  doctorWrap.hidden = item.type !== "doctor";
+  document.getElementById("issueDoctor").innerHTML = `<option value="">請選擇醫師</option>${state.doctors.map(person => `<option value="${person.id}" ${person.id===item.doctorId?"selected":""}>${escapeHtml(person.name)}</option>`).join("")}`;
+  document.getElementById("issueDueStart").value = item.dueStart;
+  document.getElementById("issueDueEnd").value = item.dueEnd;
+  document.getElementById("issueDate").value = firstSlot?.date || item.dueStart;
+  document.getElementById("issueTime").value = firstSlot?.start || (item.preferredPeriod === "下午" ? "14:00" : "09:00");
+  document.getElementById("issueNeedsVehicle").checked = item.needsVehicle;
+  document.getElementById("issueDialogContext").innerHTML = `<strong>個案條件：</strong>${escapeHtml(item.zone)} · ${item.duration} 分鐘。可修改主責、醫師、期限與用車需求，再重新計算或直接人工排入。`;
+  document.getElementById("issueDialogError").textContent = "";
+  document.getElementById("issueDialog").showModal();
+}
+
+function readIssueForm() {
+  const item = byId(state.cases,document.getElementById("issueCaseId").value);
+  return {
+    item,
+    nurseId:document.getElementById("issueNurse").value,
+    doctorId:item?.type === "doctor" ? document.getElementById("issueDoctor").value : "",
+    dueStart:document.getElementById("issueDueStart").value,
+    dueEnd:document.getElementById("issueDueEnd").value,
+    date:document.getElementById("issueDate").value,
+    start:document.getElementById("issueTime").value,
+    needsVehicle:document.getElementById("issueNeedsVehicle").checked
+  };
+}
+
+function suggestIssueDoctorSlot() {
+  const item = byId(state.cases,document.getElementById("issueCaseId").value);
+  if (!item || item.type !== "doctor") return;
+  const doctor = byId(state.doctors,document.getElementById("issueDoctor").value);
+  const dueStart = document.getElementById("issueDueStart").value;
+  const dueEnd = document.getElementById("issueDueEnd").value;
+  const slot = doctor?.slots.find(entry => entry.date >= dueStart && entry.date <= dueEnd);
+  if (slot) {
+    document.getElementById("issueDate").value = slot.date;
+    document.getElementById("issueTime").value = slot.start;
+    document.getElementById("issueDialogError").textContent = "";
+  } else {
+    document.getElementById("issueDialogError").textContent = "目前期限內沒有這位醫師的可訪時段，請調整期限或改選醫師";
+  }
+}
+
+function validateIssueAssignment(values) {
+  const {item,nurseId,doctorId,dueStart,dueEnd,date,start,needsVehicle} = values;
+  if (!item) return {error:"找不到這筆個案資料"};
+  if (dueStart > dueEnd) return {error:"訪視期限開始日期不可晚於結束日期"};
+  if (date < dueStart || date > dueEnd) return {error:"人工安排日期不在訪視期限內"};
+  const nurse = byId(state.nurses,nurseId);
+  if (!nurse) return {error:"請選擇可辨識的護理師"};
+  if (!nurse.workDays.includes(dayOfWeek(date))) return {error:"選擇的護理師當日不在可排班星期內"};
+  if (needsVehicle) {
+    if (!nurse.vehicleDates.includes(date)) return {error:"選擇的護理師當日不是可用車日"};
+    if (getVehicleCapacity(date) < 1) return {error:"當日用車上限為 0，請先修改月曆上的用車上限"};
+    if (getVehicleUsage(date) >= getVehicleCapacity(date)) return {error:"當日用車容量已滿，請提高上限或改期"};
+  }
+  let end = addMinutes(start,item.duration);
+  if (item.type === "doctor") {
+    const doctor = byId(state.doctors,doctorId);
+    if (!doctor) return {error:"醫師訪視必須選擇醫師"};
+    const slot = doctor.slots.find(entry => entry.date===date && entry.start===start);
+    if (!slot) return {error:"選擇的日期與時間不在該醫師提供的可訪時段"};
+    end = slot.end;
+    if (schedule.some(event => event.doctorId===doctorId && event.date===date && overlaps(start,end,event.start,event.end))) return {error:"該醫師同一時間已有其他訪視"};
+  }
+  const nurseEvents = schedule.filter(event => event.nurseId===nurseId && event.date===date);
+  const max = Math.min(Number(nurse.maxVisits || settings.maxVisits),Number(settings.maxVisits));
+  if (nurseEvents.length >= max) return {error:`該護理師當日已達 ${max} 筆訪視上限`};
+  if (nurseEvents.some(event => overlaps(start,end,event.start,event.end))) return {error:"該護理師同一時間已有其他訪視"};
+  return {error:"",end};
+}
+
+function updateIssueCase(values) {
+  Object.assign(values.item,{
+    nurseId:values.nurseId,
+    doctorId:values.doctorId,
+    dueStart:values.dueStart,
+    dueEnd:values.dueEnd,
+    needsVehicle:values.needsVehicle
+  });
+}
+
+function retryIssueSchedule() {
+  const values = readIssueForm();
+  if (!values.item) return;
+  if (values.dueStart > values.dueEnd) {
+    document.getElementById("issueDialogError").textContent = "訪視期限開始日期不可晚於結束日期";
+    return;
+  }
+  if (values.item.type === "doctor" && !values.doctorId) {
+    document.getElementById("issueDialogError").textContent = "醫師訪視必須選擇醫師";
+    return;
+  }
+  updateIssueCase(values);
+  document.getElementById("issueDialog").close();
+  runSmartScheduler(false);
+  const stillUnscheduled = issues.some(issue => issue.caseId === values.item.id);
+  showToast(stillUnscheduled ? `${values.item.alias}仍有衝突，請再次點開查看` : `${values.item.alias}已依更新條件排入`);
+}
+
+function saveIssueAssignment(eventObject) {
+  eventObject.preventDefault();
+  const values = readIssueForm();
+  const validation = validateIssueAssignment(values);
+  if (validation.error) {
+    document.getElementById("issueDialogError").textContent = validation.error;
+    return;
+  }
+  updateIssueCase(values);
+  schedule.push({
+    id:`EV-${values.item.id}`,
+    caseId:values.item.id,
+    alias:values.item.alias,
+    type:values.item.type,
+    zone:values.item.zone,
+    nurseId:values.nurseId,
+    doctorId:values.doctorId,
+    date:values.date,
+    start:values.start,
+    end:validation.end,
+    duration:values.item.duration,
+    needsVehicle:values.needsVehicle,
+    manual:true,
+    status:"待送報備"
+  });
+  schedule.sort(sortEvents);
+  issues = issues.filter(issue => issue.caseId !== values.item.id);
+  document.getElementById("issueDialog").close();
+  renderAll();
+  showToast(`${values.item.alias}已人工排入，並標示為人工調整`);
 }
 
 function validateManualChange(event, next) {
@@ -484,6 +662,12 @@ document.getElementById("exportCalendarCsv").addEventListener("click",downloadCa
 document.getElementById("showAllEvents").addEventListener("click",showAllEvents);
 document.getElementById("trackingFilter").addEventListener("change",renderTracking);
 document.getElementById("eventForm").addEventListener("submit",saveManualEvent);
+document.getElementById("vehicleForm").addEventListener("submit",saveVehicleCapacity);
+document.getElementById("issueForm").addEventListener("submit",saveIssueAssignment);
+document.getElementById("retryIssue").addEventListener("click",retryIssueSchedule);
+document.getElementById("issueDoctor").addEventListener("change",suggestIssueDoctorSlot);
+document.getElementById("issueDueStart").addEventListener("change",suggestIssueDoctorSlot);
+document.getElementById("issueDueEnd").addEventListener("change",suggestIssueDoctorSlot);
 document.querySelectorAll("[data-close-dialog]").forEach(button => button.addEventListener("click", () => document.getElementById(button.dataset.closeDialog).close()));
 
 runSmartScheduler(false);
