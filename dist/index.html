@@ -96,14 +96,14 @@
           <div class="view-heading compact">
             <div>
               <p class="section-kicker">資料匯入</p>
-              <h2 id="dataTitle">CSV是入口，不是排程答案</h2>
+              <h2 id="dataTitle">試算表是入口，不是排程答案</h2>
               <p class="subtle">上傳資料後只在本頁記憶體中運算；重新整理會回復模擬資料。請勿使用真實個資。</p>
             </div>
             <button class="button primary" id="runAfterImport">匯入後重新排程</button>
           </div>
 
           <div class="data-flow" aria-label="資料處理流程">
-            <div><span>01</span><strong>匯入</strong><small>CSV資料表</small></div>
+            <div><span>01</span><strong>匯入</strong><small>CSV／XLSX資料表</small></div>
             <b>→</b>
             <div><span>02</span><strong>檢核</strong><small>格式與缺漏</small></div>
             <b>→</b>
@@ -278,6 +278,7 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./spreadsheet-parser.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

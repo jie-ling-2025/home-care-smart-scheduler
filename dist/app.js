@@ -315,12 +315,12 @@ function renderUploads() {
     <article class="upload-card">
       <div class="upload-card-head"><div><h3>${meta.title}</h3><p>${meta.description}</p></div><span class="row-count">${counts[key]} 列</span></div>
       <div class="upload-actions">
-        <label class="file-label">選擇 ${key}.csv<input type="file" accept=".csv,text/csv" data-upload="${key}" /></label>
-        <button class="button ghost small" data-sample="${key}">下載範本</button>
+        <label class="file-label">選擇 CSV／XLSX<input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-upload="${key}" /></label>
+        <button class="button ghost small" data-sample="${key}">下載 CSV 範本</button>
       </div>
       <div class="upload-message ${importedRows[key] ? "success" : ""}" id="message-${key}">${importedRows[key] ? `已匯入 ${importedRows[key]} 列自訂資料` : "目前使用去識別化模擬資料"}</div>
     </article>`).join("");
-  container.querySelectorAll("[data-upload]").forEach(input => input.addEventListener("change", event => handleCsvUpload(event, input.dataset.upload)));
+  container.querySelectorAll("[data-upload]").forEach(input => input.addEventListener("change", event => handleSpreadsheetUpload(event, input.dataset.upload)));
   container.querySelectorAll("[data-sample]").forEach(button => button.addEventListener("click", () => downloadSample(button.dataset.sample)));
 }
 
@@ -616,38 +616,15 @@ function saveManualEvent(eventObject) {
   showToast("已儲存人工調整，並保留調整標記");
 }
 
-function parseCSV(text) {
-  const rows = [];
-  let row = [], field = "", quoted = false;
-  for (let i=0; i<text.length; i++) {
-    const char = text[i];
-    const next = text[i+1];
-    if (char === '"' && quoted && next === '"') { field += '"'; i++; }
-    else if (char === '"') quoted = !quoted;
-    else if (char === "," && !quoted) { row.push(field.trim()); field = ""; }
-    else if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") i++;
-      row.push(field.trim());
-      if (row.some(value => value !== "")) rows.push(row);
-      row = []; field = "";
-    } else field += char;
-  }
-  row.push(field.trim());
-  if (row.some(value => value !== "")) rows.push(row);
-  if (rows.length < 2) return { headers:rows[0]||[], records:[] };
-  const headers = rows[0].map(value => value.replace(/^\uFEFF/, ""));
-  return { headers, records:rows.slice(1).map(values => Object.fromEntries(headers.map((header,index)=>[header,values[index]??""]))) };
-}
-
-async function handleCsvUpload(event, type) {
+async function handleSpreadsheetUpload(event, type) {
   const input = event.target;
   const message = document.getElementById(`message-${type}`);
   if (!input.files?.[0]) return;
   try {
-    const parsed = parseCSV(await input.files[0].text());
+    const parsed = await SpreadsheetParser.parseSpreadsheetFile(input.files[0]);
     const missing = DATA_LABELS[type].required.filter(header => !parsed.headers.includes(header));
     if (missing.length) throw new Error(`缺少欄位：${missing.join("、")}`);
-    if (!parsed.records.length) throw new Error("CSV沒有資料列");
+    if (!parsed.records.length) throw new Error("檔案沒有資料列");
     if (type === "vehicles") validateVehicleRows(parsed.records);
     applyImportedData(type,parsed.records);
     importedRows[type] = parsed.records.length;
@@ -656,7 +633,7 @@ async function handleCsvUpload(event, type) {
     showToast(`${DATA_LABELS[type].title}已匯入`);
   } catch (error) {
     message.className = "upload-message error";
-    message.textContent = error.message || "無法讀取CSV";
+    message.textContent = error.message || "無法讀取檔案";
   }
 }
 
